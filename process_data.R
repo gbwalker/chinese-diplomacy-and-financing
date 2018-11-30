@@ -127,6 +127,7 @@ aiddf <- aiddf %>%
 
 # Export the data
 write_rds(aiddf, "data/aiddf.rds")
+write_rds(aiddf, "chinese-diplomacy-and-financing/aiddf.rds")
 
 ####################################
 ### Manipulate the AEI/Heritage data
@@ -169,6 +170,7 @@ investdf <- read_csv("data/china_investments.csv") %>%
 
 # Export the data
 write_rds(investdf, "data/investdf.rds")
+write_rds(aiddf, "chinese-diplomacy-and-financing/investdf.rds")
 
 ########################################
 ### Manipulate the scraped activity data
@@ -210,3 +212,5 @@ countries <- country_aiddf %>%
 
 # Export the data
 write_rds(countries, "data/countries.rds")
+write_rds(aiddf, "chinese-diplomacy-and-financing/countries.rds")
+
