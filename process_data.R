@@ -142,10 +142,13 @@ write_rds(aiddf, "chinese-diplomacy-and-financing/aiddf.rds")
 # Read in the data
 # investdf <- read_xlsx("data/china_investments.xlsx", skip = 5) %>%
 
+# Make a list of months to use for cleaning the dates
+months <- c("January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December")
+
 # Read in the data
 investdf <- read_csv("data/china_investments.csv") %>%
   clean_names() %>% 
-
+  
 # Tweak country names and region
   mutate(country = case_when(
     country == "Antigua and Barbuda" ~ "Antigua",
@@ -166,11 +169,29 @@ investdf <- read_csv("data/china_investments.csv") %>%
   )) %>% 
 
 # Make BRI a factor
-  mutate(bri = as.factor(bri))
+  mutate(bri = as.factor(bri)) %>% 
+
+# Turn the year and month into a proper date and save only that information
+  mutate(
+    month = case_when(
+      month == months[1] ~ "01",
+      month == months[2] ~ "02",
+      month == months[3] ~ "03",
+      month == months[4] ~ "04",
+      month == months[5] ~ "05",
+      month == months[6] ~ "06",
+      month == months[7] ~ "07",
+      month == months[8] ~ "08",
+      month == months[9] ~ "09",
+      month == months[10] ~ "10",
+      month == months[11] ~ "11",
+      month == months[12] ~ "12",),
+    date = ymd(paste(year, month, "01", sep = ""))) %>% 
+    select(country, date, chinese_entity, transaction_party, quantity_in_millions, sector, subsector, share_size, region, bri)
 
 # Export the data
 write_rds(investdf, "data/investdf.rds")
-write_rds(aiddf, "chinese-diplomacy-and-financing/investdf.rds")
+write_rds(investdf, "chinese-diplomacy-and-financing/investdf.rds")
 
 ########################################
 ### Manipulate the scraped activity data
@@ -212,5 +233,5 @@ countries <- country_aiddf %>%
 
 # Export the data
 write_rds(countries, "data/countries.rds")
-write_rds(aiddf, "chinese-diplomacy-and-financing/countries.rds")
+write_rds(countries, "chinese-diplomacy-and-financing/countries.rds")
 

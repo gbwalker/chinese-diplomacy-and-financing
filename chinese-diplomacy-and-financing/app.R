@@ -7,27 +7,30 @@ library(tidyverse)
 library(rsconnect)
 library(DT)
 library(timevis)
-
-data <- data.frame(
-  id      = 1:4,
-  content = c("Item one", "Item two",
-              "Ranged item", "Item four"),
-  start   = c("2016-01-10", "2016-01-11",
-              "2016-01-20", "2016-02-14 15:00:00"),
-  end     = c(NA, NA, "2016-02-04", NA)
-)
+library(htmlwidgets)
+library(plotly)
+library(stringr)
 
 # Read in the necessary data
 aiddf <- read_rds("aiddf.rds")
 investdf <- read_rds("investdf.rds")
 leaderdf <- read_rds("leaderdf.rds")
-countries <- read_rds("countries.rds")
+
+# Make country lists
+invest_countries <- unique(investdf$country) %>%
+  sort()
+aid_countries <- unique(aiddf$country) %>% 
+  sort()
+countries <- as.list(read_rds("countries.rds"))
+
+# Make a list of the four leaders
+leaders <- unique(leaderdf$leader)
 
 # script for running as a project, not as an app
 # aiddf <- read_rds("data/aiddf.rds")
 # investdf <- read_rds("data/investdf.rds")
 # leaderdf <- read_rds("data/leaderdf.rds")
-# countries_all <- read_rds("data/countries.rds")
+# countries <- read_rds("data/countries.rds")
 
 ### Selection variables
 
@@ -43,11 +46,9 @@ countries <- read_rds("countries.rds")
 # unique(investdf$sector)
 # unique(investdf$quantity_in_millions)
 
-# Make a list of leaders for users to select
-leaders <- unique(leaderdf$leader)
-
-
-# Define UI for application
+##################
+### USER INTERFACE
+##################
 ui <- navbarPage("Elite Chinese Diplomacy and Financial Flows",
 
 ### First tab
@@ -62,19 +63,38 @@ ui <- navbarPage("Elite Chinese Diplomacy and Financial Flows",
         width = 3,
         selectInput(inputId = "country", 
                     label = "Select a country:",
-                    choices = countries,
+                    choices = invest_countries,
                     selected = "United States"),
         helpText("Test")
       ),
     
     # Main panel
-    mainPanel(timevisOutput("engagements"),
+    mainPanel(plotlyOutput("investPlot"),
+              timevisOutput("engagements"),
+              tabPanel("",
+                       actionButton("year03", "2003"),
+                       actionButton("year04", "2004"),
+                       actionButton("year05", "2005"),
+                       actionButton("year06", "2006"),
+                       actionButton("year07", "2007"),
+                       actionButton("year08", "2008"),
+                       actionButton("year09", "2009"),
+                       actionButton("year10", "2010"),
+                       actionButton("year11", "2011"),
+                       actionButton("year12", "2012"),
+                       actionButton("year13", "2013"),
+                       actionButton("year14", "2014"),
+                       actionButton("year15", "2015"),
+                       actionButton("year16", "2016"),
+                       actionButton("year17", "2017"),
+                       actionButton("year18", "2018")),
               hr(),
-              div(dataTableOutput("table1", width = "100%"), style = "font-size:80%"),
-              div(dataTableOutput("table2", width = "100%"), style = "font-size:80%")
+              div(dataTableOutput("investtable", width = "100%"), style = "font-size:80%"),
+              div(dataTableOutput("leadertable", width = "100%"), style = "font-size:80%")
               )
     ))), # Three parentheses for tabPanel, fluidPage, and sidebarLayout
   
+
 ### Second tab
   tabPanel("Aid", fluidPage(
     # Page title
@@ -83,46 +103,290 @@ ui <- navbarPage("Elite Chinese Diplomacy and Financial Flows",
     # Sidebar
     sidebarLayout(
       sidebarPanel(
-        width = 4,
-        selectInput(inputId = "country", 
+        width = 3,
+        selectInput(inputId = "country2", 
                     label = "Select a country:",
                     choices = countries,
-                    selected = "United States"),
+                    selected = "Afghanistan"),
         hr(),
         helpText("Test")
       ),
       
       # Main panel
-      mainPanel(plotOutput("Plot"))
+      mainPanel(
+                timevisOutput("engagements2"),
+                tabPanel("",
+                         actionButton("year03.2", "2003"),
+                         actionButton("year04.2", "2004"),
+                         actionButton("year05.2", "2005"),
+                         actionButton("year06.2", "2006"),
+                         actionButton("year07.2", "2007"),
+                         actionButton("year08.2", "2008"),
+                         actionButton("year09.2", "2009"),
+                         actionButton("year10.2", "2010"),
+                         actionButton("year11.2", "2011"),
+                         actionButton("year12.2", "2012"),
+                         actionButton("year13.2", "2013"),
+                         actionButton("year14.2", "2014"),
+                         actionButton("year15.2", "2015"),
+                         actionButton("year16.2", "2016"),
+                         actionButton("year17.2", "2017"),
+                         actionButton("year18.2", "2018")),
+                hr(),
+                div(dataTableOutput("aidtable", width = "100%"), style = "font-size:80%"),
+                div(dataTableOutput("leadertable2", width = "100%"), style = "font-size:80%")
+      )
     ))) # Three parentheses for tabPanel, fluidPage, and sidebarLayout
 )
 
-# Define server logic required to draw a histogram
+
+
+##########
+### SERVER
+##########
+
 server <- function(input, output) {
+
+################
+# INVESTMENT TAB
+################
   
-  # Make the timeline
+### Plot the investments
+  output$investPlot <- renderPlotly({
+    
+    # Select data only for the country chosen
+    data1 <- investdf %>% 
+      filter(country == input$country)
+    
+    # Make the plotly object
+    plot_ly(data1, x = ~date, y = ~quantity_in_millions, type = "scatter",
+            hoverinfo = "text",
+            text = ~paste0("</br>", "$", quantity_in_millions, "m",
+                           "</br>", chinese_entity,
+                           "</br>", ifelse(is.na(transaction_party), "", transaction_party),
+                           ifelse(is.na(transaction_party), substr(date, 1, 7), paste0("</br>", substr(date, 1, 7)))),
+            color = ~sector,
+            size = ~log(quantity_in_millions),
+            mode = "markers") %>% 
+      config(displayModeBar = FALSE) %>% 
+      layout(
+        title = paste0("Chinese Investments in ", ifelse(input$country == "United States", "the United States", input$country)),
+        xaxis = list(title = "Date"),
+        yaxis = list(title = "Amount (mil. $)"))
+  })
+  
+### Make the timeline
   output$engagements <- renderTimevis({
-    timevis(groups = data_frame(
-      id = leaders,
-      content = leaders
-    )) %>% 
-      addItems(data = data_frame(
-        start = leaderdf$date,
-        content = leaderdf$country,
-        group = leaderdf$leader))
+    
+    # Select data only for the country chosen
+    data1 <- leaderdf %>% 
+      filter(country == input$country)
+    
+# Make a boolean display category for "high" or "low" engagements to make sure the timeline adjusts the view properly
+    n <- data1 %>%
+      count() %>% 
+      as.double()
+    high <- case_when(
+      n > 25 ~ TRUE,
+      n <= 25 ~ FALSE)
+
+### Timeline
+    timevis(showZoom = FALSE, fit = TRUE, height = "350pt",
       
+      # Set options in JS for zoom limits; zoomMax is in miliseconds
+      options = list(max = "2020-01-01",
+                     min = "2000-01-01",
+                     zoomMax = case_when(
+                       high ~ 31540000000*2,
+                       high ~ 567720000000)
+                     ),
+      groups = data_frame(
+        id = leaders,
+        content = leaders)) %>% 
+      
+      # Add the data to the timeline with a smaller font size
+      # Set the default view to the most recent engagement and six months before (in miliseconds)
+      addItems(data = data_frame(
+        start = data1$date,
+        content = paste0(substr(data1$text, 1, 60), "..."),
+        group = data1$leader,
+        style = "font-size: 10px",
+        type = "box",
+        title = paste0(data1$text, " (", data1$date, ")"))) %>% 
+      
+      # Set the default window differently depending on whether the number of engagements is high or low
+      setWindow(ifelse(high, max(data1$date) - 100, min(data1$date) - 1500), max(data1$date) + 100)
 })
+
+# Respond to each year button
+  observeEvent(input$year03, {
+    centerTime("engagements", "2003-06-15")})
+  observeEvent(input$year04, {
+    centerTime("engagements", "2004-06-15")})
+  observeEvent(input$year05, {
+    centerTime("engagements", "2005-06-15")})
+  observeEvent(input$year06, {
+    centerTime("engagements", "2006-06-15")})
+  observeEvent(input$year07, {
+    centerTime("engagements", "2007-06-15")})
+  observeEvent(input$year08, {
+    centerTime("engagements", "2008-06-15")})
+  observeEvent(input$year09, {
+    centerTime("engagements", "2009-06-15")})
+  observeEvent(input$year10, {
+    centerTime("engagements", "2010-06-15")})
+  observeEvent(input$year11, {
+    centerTime("engagements", "2011-06-15")})
+  observeEvent(input$year12, {
+    centerTime("engagements", "2012-06-15")})
+  observeEvent(input$year13, {
+    centerTime("engagements", "2013-06-15")})
+  observeEvent(input$year14, {
+    centerTime("engagements", "2014-06-15")})
+  observeEvent(input$year15, {
+    centerTime("engagements", "2015-06-15")})
+  observeEvent(input$year16, {
+    centerTime("engagements", "2016-06-15")})
+  observeEvent(input$year17, {
+    centerTime("engagements", "2017-06-15")})
+  observeEvent(input$year18, {
+    centerTime("engagements", "2018-06-15")})
   
-  output$table1 = renderDataTable({
-    datatable(investdf, options=list(pageLength = 10)) %>% 
+### Make the investment list data table
+  output$investtable = renderDataTable({
+    
+    # Select data only for the country chosen
+    data1 <- read_rds("investdf.rds") %>% 
+      filter(country == input$country) %>% 
+      select(-country, -region, -bri)
+    
+    # Data table
+    datatable(data1, options=list(pageLength = 10),
+              colnames = c("Date", "Chinese company", "Transaction party", "Amount (mil. $)", "Sector", "Subsector", "Share")) %>% 
       formatStyle(columns = TRUE, target= "row", lineHeight="90%")
   })
 
-  output$table2 = renderDataTable({
-    datatable(leaderdf, options=list(pageLength = 10)) %>% 
+### Make the leader engagements data table
+  output$leadertable = renderDataTable({
+    
+    # Select data only for the country chosen
+    data1 <- read_rds("leaderdf.rds") %>% 
+      filter(country == input$country) %>% 
+      select(-year, -country)
+    
+    # Data table
+    datatable(data1, options=list(pageLength = 10),
+              colnames = c("Date", "Leader", "Description")) %>% 
       formatStyle(columns = TRUE, target= "row")  })
+
+#########
+# AID TAB
+#########
+
+  ### Make the timeline
+  output$engagements2 <- renderTimevis({
+    
+    # Select data only for the country chosen
+    data1 <- leaderdf %>% 
+      filter(country == input$country2)
+    
+    # Make a boolean display category for "high" or "low" engagements to make sure the timeline adjusts the view properly
+    n <- data1 %>%
+      count() %>% 
+      as.double()
+    high <- case_when(
+      n > 25 ~ TRUE,
+      n <= 25 ~ FALSE)
+    
+    ### Timeline
+    timevis(showZoom = FALSE, fit = TRUE, height = "350pt",
+            
+            # Set options in JS for zoom limits; zoomMax is in miliseconds
+            options = list(max = "2020-01-01",
+                           min = "2000-01-01",
+                           zoomMax = case_when(
+                             high ~ 31540000000*2,
+                             high ~ 567720000000)
+            ),
+            groups = data_frame(
+              id = leaders,
+              content = leaders)) %>% 
+      
+      # Add the data to the timeline with a smaller font size
+      # Set the default view to the most recent engagement and six months before (in miliseconds)
+      addItems(data = data_frame(
+        start = data1$date,
+        content = paste0(substr(data1$text, 1, 60), "..."),
+        group = data1$leader,
+        style = "font-size: 10px",
+        type = "box",
+        title = paste0(data1$text, " (", data1$date, ")"))) %>% 
+      
+      # Set the default window differently depending on whether the number of engagements is high or low
+      setWindow(ifelse(high, max(data1$date) - 100, min(data1$date) - 1500), max(data1$date) + 100)
+  })
+  
+  # Respond to each year button
+  observeEvent(input$year03.2, {
+    centerTime("engagements2", "2003-06-15")})
+  observeEvent(input$year04.2, {
+    centerTime("engagements2", "2004-06-15")})
+  observeEvent(input$year05.2, {
+    centerTime("engagements2", "2005-06-15")})
+  observeEvent(input$year06.2, {
+    centerTime("engagements2", "2006-06-15")})
+  observeEvent(input$year07.2, {
+    centerTime("engagements2", "2007-06-15")})
+  observeEvent(input$year08.2, {
+    centerTime("engagements2", "2008-06-15")})
+  observeEvent(input$year09.2, {
+    centerTime("engagements2", "2009-06-15")})
+  observeEvent(input$year10.2, {
+    centerTime("engagements2", "2010-06-15")})
+  observeEvent(input$year11.2, {
+    centerTime("engagements2", "2011-06-15")})
+  observeEvent(input$year12.2, {
+    centerTime("engagements2", "2012-06-15")})
+  observeEvent(input$year13.2, {
+    centerTime("engagements2", "2013-06-15")})
+  observeEvent(input$year14.2, {
+    centerTime("engagements2", "2014-06-15")})
+  observeEvent(input$year15.2, {
+    centerTime("engagements2", "2015-06-15")})
+  observeEvent(input$year16.2, {
+    centerTime("engagements2", "2016-06-15")})
+  observeEvent(input$year17.2, {
+    centerTime("engagements2", "2017-06-15")})
+  observeEvent(input$year18.2, {
+    centerTime("engagements2", "2018-06-15")})
+
+### Make the leader engagements data table
+  output$aidtable = renderDataTable({
+    
+    # Select data only for the country chosen
+    data1 <- read_rds("aiddf.rds") %>% 
+      filter(str_detect(country, input$country2)) %>% 
+      select(-id, -latitude, -longitude)
+    
+    # Data table
+    datatable(data1, options=list(pageLength = 10),
+              colnames = c("Year", "Country", "Place", "Sector", "Description", "Funder", "Flow", "Flow Class", "Intend", "Amount ($)"))
+    })
+  
+### Make the leader engagements data table
+  output$leadertable2 = renderDataTable({
+    
+    # Select data only for the country chosen
+    data1 <- read_rds("leaderdf.rds") %>% 
+      filter(country == input$country2) %>% 
+      select(-year, -country)
+    
+    # Data table
+    datatable(data1, options=list(pageLength = 10),
+              colnames = c("Date", "Leader", "Description"))
+    })
+  
 }
 
 # Run the application 
 shinyApp(ui = ui, server = server)
-
