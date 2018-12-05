@@ -10,17 +10,27 @@ library(timevis)
 library(htmlwidgets)
 library(plotly)
 library(stringr)
+library(shinyWidgets)
+library(leaflet)
 
 # Read in the necessary data
 aiddf <- read_rds("aiddf.rds")
 investdf <- read_rds("investdf.rds")
 leaderdf <- read_rds("leaderdf.rds")
 
-# Make country lists
+# Make a list of all the countries China invests in
 invest_countries <- unique(investdf$country) %>%
   sort()
-aid_countries <- unique(aiddf$country) %>% 
+
+# Make a list of all the countries China has provided aid to, ignoring multiple country listings
+aid_countries <- aiddf %>% 
+  filter(! str_detect(aiddf$country, ";")) %>% 
+  filter(! is.na(longitude))
+
+aid_countries <- unique(aid_countries$country) %>% 
   sort()
+
+# Make a list of all countries between the three data sets
 countries <- as.list(read_rds("countries.rds"))
 
 # Make a list of the four leaders
@@ -31,20 +41,6 @@ leaders <- unique(leaderdf$leader)
 # investdf <- read_rds("data/investdf.rds")
 # leaderdf <- read_rds("data/leaderdf.rds")
 # countries <- read_rds("data/countries.rds")
-
-### Selection variables
-
-# Make selection lists for the AidData data: sector, countries, flow, flow_class, intent
-# unique(aiddf$sector)
-# unique(aiddf$country)
-# unique(aiddf$flow)
-# unique(aiddf$flow_class)
-# unique(aiddf$intent)
-
-# Make selection lists for investdf
-# unique(investdf$country)
-# unique(investdf$sector)
-# unique(investdf$quantity_in_millions)
 
 ##################
 ### USER INTERFACE
@@ -64,7 +60,13 @@ ui <- navbarPage("Elite Chinese Diplomacy and Financial Flows",
         selectInput(inputId = "country", 
                     label = "Select a country:",
                     choices = invest_countries,
-                    selected = "United States"),
+                    selected = "United States",
+                    selectize = TRUE),
+        helpText("Test"),
+        awesomeCheckboxGroup(inputId = "leaders",
+                             label = "Choose leaders:",
+                             choices = c(leaders),
+                             selected = "Xi Jinping"),
         helpText("Test")
       ),
     
@@ -106,14 +108,20 @@ ui <- navbarPage("Elite Chinese Diplomacy and Financial Flows",
         width = 3,
         selectInput(inputId = "country2", 
                     label = "Select a country:",
-                    choices = countries,
-                    selected = "Afghanistan"),
+                    choices = aid_countries,
+                    selected = "Afghanistan",
+                    selectize = TRUE),
         hr(),
+        helpText("Test"),
+        awesomeCheckboxGroup(inputId = "leaders2",
+                             label = "Choose leaders:",
+                             choices = c(leaders),
+                             selected = "Xi Jinping"),
         helpText("Test")
       ),
       
       # Main panel
-      mainPanel(
+      mainPanel(leafletOutput("aidmap", height = 500),
                 timevisOutput("engagements2"),
                 tabPanel("",
                          actionButton("year03.2", "2003"),
@@ -146,7 +154,7 @@ ui <- navbarPage("Elite Chinese Diplomacy and Financial Flows",
 ##########
 
 server <- function(input, output) {
-
+  
 ################
 # INVESTMENT TAB
 ################
@@ -180,7 +188,8 @@ server <- function(input, output) {
     
     # Select data only for the country chosen
     data1 <- leaderdf %>% 
-      filter(country == input$country)
+      filter(country == input$country) %>% 
+      filter(leader %in% input$leaders)
     
 # Make a boolean display category for "high" or "low" engagements to make sure the timeline adjusts the view properly
     n <- data1 %>%
@@ -200,9 +209,7 @@ server <- function(input, output) {
                        high ~ 31540000000*2,
                        high ~ 567720000000)
                      ),
-      groups = data_frame(
-        id = leaders,
-        content = leaders)) %>% 
+      groups = data_frame(id = input$leaders, content = input$leaders)) %>% 
       
       # Add the data to the timeline with a smaller font size
       # Set the default view to the most recent engagement and six months before (in miliseconds)
@@ -283,12 +290,38 @@ server <- function(input, output) {
 # AID TAB
 #########
 
+  ### Draw the map
+  output$aidmap <- renderLeaflet({
+    
+    # Select data only for the chosen country
+    data1 <- read_rds("aiddf.rds") %>% 
+      filter(country == input$country2)
+    
+    # Initiate the map
+    map <- leaflet(data1) %>%
+      addProviderTiles(providers$OpenStreetMap.HOT) %>% 
+      addCircles(
+                 lng = ~jitter(longitude, 0.001),
+                 lat = ~jitter(latitude, 0.001),
+                 radius = ~ifelse(is.na(usd_current), 750, log(usd_current)*500),
+                 group = ~intent,
+                 color = "#DE2910",
+                 opacity = 0.5,
+                 # fillOpacity = 0.5,
+                 popup = paste(data1$funder, "<br>", data1$title, "<br>", data1$place, "<br>", data1$year))
+    
+    # Draw the map
+    map
+  })
+  
+  
   ### Make the timeline
   output$engagements2 <- renderTimevis({
     
     # Select data only for the country chosen
     data1 <- leaderdf %>% 
-      filter(country == input$country2)
+      filter(country == input$country2) %>% 
+      filter(leader == input$leaders2)
     
     # Make a boolean display category for "high" or "low" engagements to make sure the timeline adjusts the view properly
     n <- data1 %>%
@@ -308,9 +341,7 @@ server <- function(input, output) {
                              high ~ 31540000000*2,
                              high ~ 567720000000)
             ),
-            groups = data_frame(
-              id = leaders,
-              content = leaders)) %>% 
+            groups = data_frame(id = input$leaders2, content = input$leaders2)) %>% 
       
       # Add the data to the timeline with a smaller font size
       # Set the default view to the most recent engagement and six months before (in miliseconds)
