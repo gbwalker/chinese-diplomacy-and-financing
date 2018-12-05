@@ -13,6 +13,10 @@ library(stringr)
 library(shinyWidgets)
 library(leaflet)
 
+##################
+# Read in the data
+##################
+
 # Read in the necessary data
 aiddf <- read_rds("aiddf.rds")
 investdf <- read_rds("investdf.rds")
@@ -48,10 +52,10 @@ leaders <- unique(leaderdf$leader)
 ui <- navbarPage("Elite Chinese Diplomacy and Financial Flows",
 
 ### First tab
-  tabPanel("Investment", fluidPage(
+  tabPanel("Global Investments", fluidPage(
     
     # Page title
-    titlePanel("Investment"),
+    titlePanel("Global Investments (2005-2018)"),
     
     # Sidebar
     sidebarLayout(
@@ -62,13 +66,14 @@ ui <- navbarPage("Elite Chinese Diplomacy and Financial Flows",
                     choices = invest_countries,
                     selected = "United States",
                     selectize = TRUE),
-        helpText("Test"),
         awesomeCheckboxGroup(inputId = "leaders",
                              label = "Choose leaders:",
                              choices = c(leaders),
-                             selected = "Xi Jinping"),
-        helpText("Test")
-      ),
+                             selected = c("Xi Jinping", "Hu Jintao")),
+        helpText("Xi Jinping: President (2013-Present); Vice President (2008-2013)"),
+        helpText("Hu Jintao: President (2003-2013); Vice President (1998-2003)"),
+        helpText("Li Keqiang: Premier (2013-Present); Vice Premier (2008-2013)"),
+        helpText("Wen Jiabao: Premier (2003-2013)")),
     
     # Main panel
     mainPanel(plotlyOutput("investPlot"),
@@ -98,9 +103,9 @@ ui <- navbarPage("Elite Chinese Diplomacy and Financial Flows",
   
 
 ### Second tab
-  tabPanel("Aid", fluidPage(
+  tabPanel("Global Aid", fluidPage(
     # Page title
-    titlePanel("Aid"),
+    titlePanel("Global Aid (2000-2014)"),
     
     # Sidebar
     sidebarLayout(
@@ -109,16 +114,16 @@ ui <- navbarPage("Elite Chinese Diplomacy and Financial Flows",
         selectInput(inputId = "country2", 
                     label = "Select a country:",
                     choices = aid_countries,
-                    selected = "Afghanistan",
+                    selected = "Sri Lanka",
                     selectize = TRUE),
-        hr(),
-        helpText("Test"),
         awesomeCheckboxGroup(inputId = "leaders2",
                              label = "Choose leaders:",
                              choices = c(leaders),
-                             selected = "Xi Jinping"),
-        helpText("Test")
-      ),
+                             selected = c("Xi Jinping", "Hu Jintao")),
+        helpText("Xi Jinping: President (2013-Present); Vice President (2008-2013)"),
+        helpText("Hu Jintao: President (2003-2013); Vice President (1998-2003)"),
+        helpText("Li Keqiang: Premier (2013-Present); Vice Premier (2008-2013)"),
+        helpText("Wen Jiabao: Premier (2003-2013)")),
       
       # Main panel
       mainPanel(leafletOutput("aidmap", height = 500),
@@ -169,10 +174,11 @@ server <- function(input, output) {
     # Make the plotly object
     plot_ly(data1, x = ~date, y = ~quantity_in_millions, type = "scatter",
             hoverinfo = "text",
-            text = ~paste0("</br>", "$", quantity_in_millions, "m",
-                           "</br>", chinese_entity,
-                           "</br>", ifelse(is.na(transaction_party), "", transaction_party),
-                           ifelse(is.na(transaction_party), substr(date, 1, 7), paste0("</br>", substr(date, 1, 7)))),
+            text = ~paste0("</br>", "<b>Amount: </b>", paste0("$", format(quantity_in_millions, big.mark = ",")), ",000,000",
+                           "</br>", "<b>Investor: </b>", chinese_entity,
+                           "</br>", ifelse(is.na(transaction_party), "", paste0("<b>Transaction Party: </b>", transaction_party)),
+                           ifelse(is.na(transaction_party), paste0("<b>Date: </b>", substr(date, 1, 7)),
+                                  paste0("</br>", "<b>Date: </b>", substr(date, 1, 7)))),
             color = ~sector,
             size = ~log(quantity_in_millions),
             mode = "markers") %>% 
@@ -263,7 +269,7 @@ server <- function(input, output) {
   output$investtable = renderDataTable({
     
     # Select data only for the country chosen
-    data1 <- read_rds("investdf.rds") %>% 
+    data1 <- investdf %>% 
       filter(country == input$country) %>% 
       select(-country, -region, -bri)
     
@@ -277,7 +283,7 @@ server <- function(input, output) {
   output$leadertable = renderDataTable({
     
     # Select data only for the country chosen
-    data1 <- read_rds("leaderdf.rds") %>% 
+    data1 <- leaderdf %>% 
       filter(country == input$country) %>% 
       select(-year, -country)
     
@@ -293,25 +299,45 @@ server <- function(input, output) {
   ### Draw the map
   output$aidmap <- renderLeaflet({
     
-    # Select data only for the chosen country
-    data1 <- read_rds("aiddf.rds") %>% 
-      filter(country == input$country2)
+    # Select data only for one project at a time
+    map_projects <- aiddf
+    # %>% 
+    #   filter(! is.na(longitude))
+    
+    # Remove duplicated projects so the markers don't overlap
+    map_projects <- map_projects[! duplicated(map_projects$id), ]
+      
+    # Set the latitude and longitude dynamically so users can focus in on different countries
+    data1 <- aiddf %>%
+      filter(str_detect(country, input$country2)) %>% 
+      filter(! str_detect(country, ";")) %>% 
+      filter(! is.na(longitude))
     
     # Initiate the map
-    map <- leaflet(data1) %>%
-      addProviderTiles(providers$OpenStreetMap.HOT) %>% 
-      addCircles(
-                 lng = ~jitter(longitude, 0.001),
-                 lat = ~jitter(latitude, 0.001),
-                 radius = ~ifelse(is.na(usd_current), 750, log(usd_current)*500),
-                 group = ~intent,
-                 color = "#DE2910",
-                 opacity = 0.5,
-                 # fillOpacity = 0.5,
-                 popup = paste(data1$funder, "<br>", data1$title, "<br>", data1$place, "<br>", data1$year))
-    
-    # Draw the map
-    map
+    leaflet(map_projects) %>%
+      addProviderTiles(providers$Esri.WorldStreetMap) %>% 
+      setView(data1$longitude[1], data1$latitude[1], zoom = 7) %>% 
+      addCircleMarkers(lng = ~jitter(longitude, 2),
+                       lat = ~jitter(latitude, 2),
+                       radius = ~ifelse(is.na(usd_current), 8, log(usd_current) * 2),
+                       color = "#00A86B",
+                       opacity = 0.5,
+                       fillOpacity = 0.5,
+                       clusterOptions = markerClusterOptions(freezeAtZoom = 10,
+                                                             spiderfyOnMaxZoom = TRUE,
+                                                             removeOutsideVisibleBounds = FALSE,
+                                                             spiderfyDistanceMultiplier = 2,
+                                                             spiderLegPolylineOptions = list(weight = .5)),
+                       popup = paste0("<b>Funder: </b>", map_projects$funder, "<br>",
+                                      "<b>Sector: </b>", map_projects$sector, "<br>",
+                                      "<b>Description: </b>", map_projects$title, "<br>",
+                                      "<b>Amount: </b>", ifelse(is.na(map_projects$usd_current),
+                                                                "Unknown",
+                                                                paste0("$", formatC(map_projects$usd_current, format = "f", digits = 0, big.mark = ","))), "<br>",
+                                      "<b>Intent: </b>", map_projects$intent, "<br>",
+                                      "<b>Locale: </b>", str_trim(map_projects$place), ", ",
+                                      map_projects$country, ", ",
+                                      map_projects$year))
   })
   
   
@@ -395,20 +421,23 @@ server <- function(input, output) {
   output$aidtable = renderDataTable({
     
     # Select data only for the country chosen
-    data1 <- read_rds("aiddf.rds") %>% 
+    data1 <- aiddf %>% 
       filter(str_detect(country, input$country2)) %>% 
+      mutate(usd_current = case_when(
+        is.na(usd_current) ~ "Unknown",
+        TRUE ~ paste0(format(usd_current, big.mark = ",")))) %>% 
       select(-id, -latitude, -longitude)
     
     # Data table
     datatable(data1, options=list(pageLength = 10),
-              colnames = c("Year", "Country", "Place", "Sector", "Description", "Funder", "Flow", "Flow Class", "Intend", "Amount ($)"))
+              colnames = c("Year", "Country", "Place", "Sector", "Description", "Funder", "Flow", "Flow Class", "Intention", "Amount ($)"))
     })
   
 ### Make the leader engagements data table
   output$leadertable2 = renderDataTable({
     
     # Select data only for the country chosen
-    data1 <- read_rds("leaderdf.rds") %>% 
+    data1 <- leaderdf %>% 
       filter(country == input$country2) %>% 
       select(-year, -country)
     

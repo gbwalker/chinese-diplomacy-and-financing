@@ -95,6 +95,8 @@ aiddf <- aiddf %>%
     country == "Bosnia; Herzegovina" ~ "Bosnia and Herzegovina",
     country == "Cote D'Ivoire" ~ "Ivory Coast",
     country == "Timor-Leste" ~ "East Timor",
+    country == "Korea" & str_detect(title, "North Korea") ~ "North Korea",
+    country == "Korea" & str_detect(title, "South Korea") ~ "South Korea",
     is.na(country) & str_detect(place, "South Sudan") ~ "South Sudan",
     is.na(country) & str_detect(title, "South Sudan") ~ "South Sudan",
     TRUE ~ country
