@@ -34,9 +34,6 @@ aid_countries <- aiddf %>%
 aid_countries <- unique(aid_countries$country) %>% 
   sort()
 
-# Make a selection list of all the sectors for which China has provided aid
-aid_sectors <- unique(aiddf$sector)
-
 # Make a list of all countries between the three data sets
 countries <- as.list(read_rds("countries.rds"))
 
@@ -49,54 +46,60 @@ leaders <- unique(leaderdf$leader)
 # leaderdf <- read_rds("data/leaderdf.rds")
 # countries <- read_rds("data/countries.rds")
 
-
 ##################
 ### USER INTERFACE
 ##################
-ui <- navbarPage("Elite Chinese Diplomacy and Financial Flows", position = "fixed-top",
+ui <- navbarPage("Elite Chinese Diplomacy and Financial Flows",
 
 ### First tab
-  tabPanel("Global Aid", 
-    div(class = "outer",
-    # Include custom CSS
-    tags$head(includeCSS("styles.css"))
-        ),
-  
-  # Include the map
-  leafletOutput("aidmap", width = "100%", height = "600px"),
-  
-  # Include the selection panel
-  absolutePanel(id = "controls", class = "panel panel-default", fixed = FALSE, draggable = FALSE, top = 60, right = "auto",
-                left = 40, bottom = "auto", height = "auto", width = 330,
-                selectInput(inputId = "country2", 
-                            label = HTML("<b>Select a country:</b>"),
-                            choices = aid_countries,
-                            selected = "Sri Lanka",
-                            selectize = TRUE),
-                helpText(textOutput("aid_amount")),
-                helpText(textOutput("aid_number")),
-                helpText(textOutput("aid_common")),
-                selectInput(inputId = "sector",
-                            label = HTML("<b>Choose sectors:</b>"),
-                            choices = "All",
-                            selected = "All",
-                            multiple = FALSE),
-                awesomeCheckboxGroup(inputId = "leaders2",
-                                     label = "Choose leaders:",
-                                     choices = c(leaders),
-                                     selected = c("Xi Jinping", "Hu Jintao"),
-                                     inline = TRUE),
-                plotOutput("mini_graph", height = "230px", width = "275px")
-              ),
-  hr(),
-  timevisOutput("engagements2", width = "100%"),
-  hr(),
-  h3(textOutput("aid_title")),
-  div(dataTableOutput("aidtable", width = "100%"), style = "font-size:80%"),
-  hr(),
-  h3(textOutput("engagement_title")),
-  div(dataTableOutput("leadertable2", width = "100%"), style = "font-size:80%")
-  ),
+  tabPanel("Global Aid",
+    fluidPage(
+    # Page title
+    titlePanel("Global Aid (2000-2014)"),
+    
+    # Sidebar
+    sidebarLayout(
+      sidebarPanel(
+        width = 3,
+        selectInput(inputId = "country2", 
+                    label = "Select a country:",
+                    choices = aid_countries,
+                    selected = "Sri Lanka",
+                    selectize = TRUE),
+        awesomeCheckboxGroup(inputId = "leaders2",
+                             label = "Choose leaders:",
+                             choices = c(leaders),
+                             selected = c("Xi Jinping", "Hu Jintao")),
+        helpText("Xi Jinping: President (2013-Present); Vice President (2008-2013)"),
+        helpText("Hu Jintao: President (2003-2013); Vice President (1998-2003)"),
+        helpText("Li Keqiang: Premier (2013-Present); Vice Premier (2008-2013)"),
+        helpText("Wen Jiabao: Premier (2003-2013)")),
+      
+      # Main panel
+      mainPanel(leafletOutput("aidmap", width = "100%"),
+                timevisOutput("engagements2"),
+                tabPanel("",
+                         actionButton("year03.2", "2003"),
+                         actionButton("year04.2", "2004"),
+                         actionButton("year05.2", "2005"),
+                         actionButton("year06.2", "2006"),
+                         actionButton("year07.2", "2007"),
+                         actionButton("year08.2", "2008"),
+                         actionButton("year09.2", "2009"),
+                         actionButton("year10.2", "2010"),
+                         actionButton("year11.2", "2011"),
+                         actionButton("year12.2", "2012"),
+                         actionButton("year13.2", "2013"),
+                         actionButton("year14.2", "2014"),
+                         actionButton("year15.2", "2015"),
+                         actionButton("year16.2", "2016"),
+                         actionButton("year17.2", "2017"),
+                         actionButton("year18.2", "2018")),
+                hr(),
+                div(dataTableOutput("aidtable", width = "100%"), style = "font-size:80%"),
+                div(dataTableOutput("leadertable2", width = "100%"), style = "font-size:80%")
+      )
+    ))), # Three parentheses for tabPanel, fluidPage, and sidebarLayout
 
 ### Second tab
 tabPanel("Global Investments", fluidPage(
@@ -153,180 +156,54 @@ tabPanel("Global Investments", fluidPage(
 ### SERVER
 ##########
 
-server <- function(input, output, session) {
+server <- function(input, output) {
 
 #########
 # AID TAB
 #########
-  
-### Get some summary stats from the selected data
-  
-  # Find the total aid amount
-  output$aid_amount <- renderText({
-    amount <- aiddf %>%
-      filter(str_detect(country, input$country2)) %>% 
-      filter(! is.na(usd_current))
-    
-    # Filter by sector if applicable
-    if (input$sector != "All") {
-      amount <- amount %>% 
-        filter(sector == input$sector)
-    }
-    
-    amount <- sum(amount$usd_current)
-    paste0("Known aid amount: $", formatC(amount, format = "f", digits = 0, big.mark = ","))
-  })
-  
-  # Find the number of projects for the given country and sector
-  output$aid_number <- renderText({
-    number <- aiddf %>%
-      filter(str_detect(country, input$country2))
-    
-    # Filter by sector if applicable
-    if (input$sector != "All") {
-      number <- number %>% 
-        filter(sector == input$sector)
-    }
-  
-    number <- tally(number)
-    paste0("Known projects: ", number)
-  })
-  
-  # Find the most common sector
-  output$aid_common <- renderText({
-    common <- aiddf %>%
-      filter(str_detect(country, input$country2))
-    
-    common <- count(common, sector) %>% 
-      arrange(desc(n))
-    
-    # Check if there are two top sectors
-    ifelse(common$n[1] != common$n[2], top <- common$sector[1], top <- common$sector[1:2])
-    
-    # Fill in a dummy if there's only one sector
-    if (length(common$sector) == 1) {
-      top <- common$sector[1]
-    }
-    
-    # Return different values if there's one or two top sectors
-    ifelse(length(top) == 1, paste0("Most common sector: ", top), paste0("Most common sectors: ", top[1], " and ", top[2]))
-  })
-  
-  # Draw a baby plot on the sidebar
-  output$mini_graph <- renderPlot({
-    # Use selected country and leader(s)
-    mini_leader <- leaderdf %>% 
-      filter(country == input$country2) %>% 
-      filter(leader %in% input$leaders2) %>% 
-    
-    # Group years by year ranges
-      mutate(year = as.double(year)) %>% 
-      mutate(bucket = case_when(
-        year <= 2002 ~ "2000-02",
-        year >= 2003 & year <= 2007 ~ "2003-07",
-        year >= 2008 & year <= 2012 ~ "2008-12",
-        year >= 2013 ~ "2013-18"
-      ))
 
-    # Make counts
-    mini <- count(mini_leader, bucket)
-    
-    # Put dummy numbers in if values are blank
-    if (is.na(mini)) {
-      mini <- data.frame(bucket = "2000-2018", n = 0)
-    }
-    
-    # Make the mini graph
-    ggplot(mini, aes(bucket, n, group = 1)) + 
-      geom_point(size = 0, col = "#0F52BA") +
-      geom_line(col = "#0F52BA") +
-      scale_y_continuous(breaks = round(seq(0, max(mini$n) + 2, by = 2), 2)) +
-      labs(x = "Engagements", y = "Count") +
-      theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank())
-  })
-  
-  
   ### Draw the map
   output$aidmap <- renderLeaflet({
     
-    # Initiate the map
-    leaflet(filteredMapData, options = leafletOptions(zoomControl = FALSE)) %>%
-      addProviderTiles(providers$Esri.WorldStreetMap)
-  })
-
-# Every time the user chooses a new country, redo the map view
-  observe({
-    map_projects <- filteredMapData() %>% 
-      filter(str_detect(country, input$country2))
+    # Select data only for one project at a time
+    map_projects <- aiddf
+    # %>% 
+    #   filter(! is.na(longitude))
     
-    leafletProxy("aidmap", data = map_projects) %>%
-      setView(map_projects$longitude[1], map_projects$latitude[1], zoom = 7) 
-  })
-
-# Every time the user chooses a new sector, rewrite the markers
-  observe({
-    ifelse(input$sector == "All", 
-      {map_projects <- filteredMapData()},
-      {map_projects <- filteredMapData() %>% 
-        filter(sector == input$sector)})
-  
-    leafletProxy("aidmap", data = map_projects) %>%
-      clearMarkers() %>% 
-      clearMarkerClusters() %>% 
-      addCircleMarkers(lng = ~longitude,
-                       lat = ~latitude,
-                       radius = ~ifelse(is.na(usd_current), 6, log(usd_current)),
+    # Remove duplicated projects so the markers don't overlap
+    map_projects <- map_projects[! duplicated(map_projects$id), ]
+      
+    # Set the latitude and longitude dynamically so users can focus in on different countries
+    data1 <- aiddf %>%
+      filter(str_detect(country, input$country2)) %>% 
+      filter(! str_detect(country, ";")) %>% 
+      filter(! is.na(longitude))
+    
+    # Initiate the map
+    leaflet(map_projects) %>%
+      addProviderTiles(providers$Esri.WorldStreetMap) %>% 
+      setView(data1$longitude[1], data1$latitude[1], zoom = 7) %>% 
+      addCircleMarkers(lng = ~jitter(longitude, 2),
+                       lat = ~jitter(latitude, 2),
+                       radius = ~ifelse(is.na(usd_current), 8, log(usd_current) * 2),
                        color = "#00A86B",
                        opacity = 0.5,
-                       fillOpacity = 0.25,
-                       clusterOptions = markerClusterOptions(freezeAtZoom = 12,
+                       fillOpacity = 0.5,
+                       clusterOptions = markerClusterOptions(freezeAtZoom = 10,
                                                              spiderfyOnMaxZoom = TRUE,
-                                                             removeOutsideVisibleBounds = TRUE,
+                                                             removeOutsideVisibleBounds = FALSE,
                                                              spiderfyDistanceMultiplier = 2,
-                                                             spiderLegPolylineOptions = list(weight = .75)),
+                                                             spiderLegPolylineOptions = list(weight = .5)),
                        popup = paste0("<b>Funder: </b>", map_projects$funder, "<br>",
                                       "<b>Sector: </b>", map_projects$sector, "<br>",
                                       "<b>Description: </b>", map_projects$title, "<br>",
                                       "<b>Amount: </b>", ifelse(is.na(map_projects$usd_current),
                                                                 "Unknown",
-                                                                paste0("$", formatC(map_projects$usd_current,
-                                                                                    format = "f",
-                                                                                    digits = 0,
-                                                                                    big.mark = ","))), "<br>",
+                                                                paste0("$", formatC(map_projects$usd_current, format = "f", digits = 0, big.mark = ","))), "<br>",
                                       "<b>Intent: </b>", map_projects$intent, "<br>",
                                       "<b>Locale: </b>", str_trim(map_projects$place), ", ",
                                       map_projects$country, ", ",
                                       map_projects$year))
-    
-  })
-
-  ### Make a custom list of sectors for each country
-  observe({
-    data1 <- filteredMapData() %>% 
-      filter(str_detect(country, input$country2))
-    
-    updateSelectInput(session, "sector", choices = c("All", unique(data1$sector)), selected = "All")
-  })
-  
-  # Validate the check boxes so at least one is checked
-  observe({
-    if(is.null(input$leaders2))
-      updateAwesomeCheckboxGroup(session, "leaders2", selected = "Xi Jinping")
-  })
-
-  
-  # Get the name of the current country for the table titles
-  output$aid_title <- renderText(paste0("Aid to ", input$country2))
-  output$engagement_title <- renderText(paste0("Engagements With ", input$country2))
-  
-  filteredMapData <- reactive({
-    # Select data only for one project at a time
-    map_projects <- aiddf %>% 
-      filter(! is.na(latitude)) %>% 
-      filter(! str_detect(country, ";"))
-    
-    # Remove duplicated projects so the markers don't overlap
-    map_projects[! duplicated(map_projects$id), ]
   })
   
   
@@ -336,7 +213,7 @@ server <- function(input, output, session) {
     # Select data only for the country chosen
     data1 <- leaderdf %>% 
       filter(country == input$country2) %>% 
-      filter(leader %in% input$leaders2)
+      filter(leader == input$leaders2)
     
     # Make a boolean display category for "high" or "low" engagements to make sure the timeline adjusts the view properly
     n <- data1 %>%
@@ -362,7 +239,7 @@ server <- function(input, output, session) {
       # Set the default view to the most recent engagement and six months before (in miliseconds)
       addItems(data = data_frame(
         start = data1$date,
-        content = paste0(substr(data1$text, 1, 100), "..."),
+        content = paste0(substr(data1$text, 1, 60), "..."),
         group = data1$leader,
         style = "font-size: 10px",
         type = "box",
@@ -371,8 +248,42 @@ server <- function(input, output, session) {
       # Set the default window differently depending on whether the number of engagements is high or low
       setWindow(ifelse(high, max(data1$date) - 100, min(data1$date) - 1500), max(data1$date) + 100)
   })
+  
+  # Respond to each year button
+  observeEvent(input$year03.2, {
+    centerTime("engagements2", "2003-06-15")})
+  observeEvent(input$year04.2, {
+    centerTime("engagements2", "2004-06-15")})
+  observeEvent(input$year05.2, {
+    centerTime("engagements2", "2005-06-15")})
+  observeEvent(input$year06.2, {
+    centerTime("engagements2", "2006-06-15")})
+  observeEvent(input$year07.2, {
+    centerTime("engagements2", "2007-06-15")})
+  observeEvent(input$year08.2, {
+    centerTime("engagements2", "2008-06-15")})
+  observeEvent(input$year09.2, {
+    centerTime("engagements2", "2009-06-15")})
+  observeEvent(input$year10.2, {
+    centerTime("engagements2", "2010-06-15")})
+  observeEvent(input$year11.2, {
+    centerTime("engagements2", "2011-06-15")})
+  observeEvent(input$year12.2, {
+    centerTime("engagements2", "2012-06-15")})
+  observeEvent(input$year13.2, {
+    centerTime("engagements2", "2013-06-15")})
+  observeEvent(input$year14.2, {
+    centerTime("engagements2", "2014-06-15")})
+  observeEvent(input$year15.2, {
+    centerTime("engagements2", "2015-06-15")})
+  observeEvent(input$year16.2, {
+    centerTime("engagements2", "2016-06-15")})
+  observeEvent(input$year17.2, {
+    centerTime("engagements2", "2017-06-15")})
+  observeEvent(input$year18.2, {
+    centerTime("engagements2", "2018-06-15")})
 
-### Make the aid data table
+### Make the leader engagements data table
   output$aidtable = renderDataTable({
     
     # Select data only for the country chosen
@@ -380,14 +291,8 @@ server <- function(input, output, session) {
       filter(str_detect(country, input$country2)) %>% 
       mutate(usd_current = case_when(
         is.na(usd_current) ~ "Unknown",
-        TRUE ~ paste0(formatC(usd_current, format = "f", digits = 0, big.mark = ",")))) %>% 
+        TRUE ~ paste0(format(usd_current, big.mark = ",")))) %>% 
       select(-id, -latitude, -longitude)
-    
-    # Filter by sector if applicable
-    if (input$sector != "All") {
-      data1 <- data1 %>% 
-        filter(sector == input$sector)
-    }
     
     # Data table
     datatable(data1, options=list(pageLength = 10),
@@ -541,6 +446,8 @@ server <- function(input, output, session) {
       formatStyle(columns = TRUE, target= "row")  })
 
 }
+
+
 
 
 # Run the application 
