@@ -82,7 +82,7 @@ ui <- navbarPage("Elite Chinese Diplomacy and Financial Flows", position = "fixe
                             selected = "All",
                             multiple = FALSE),
                 awesomeCheckboxGroup(inputId = "leaders2",
-                                     label = "Choose leaders:",
+                                     label = HTML("<b>Choose leaders:</b>"),
                                      choices = c(leaders),
                                      selected = c("Xi Jinping", "Hu Jintao"),
                                      inline = TRUE),
@@ -99,54 +99,41 @@ ui <- navbarPage("Elite Chinese Diplomacy and Financial Flows", position = "fixe
   ),
 
 ### Second tab
-tabPanel("Global Investments", fluidPage(
+tabPanel("Global Investments", 
+         div(class = "outer",
+             # Include custom CSS
+             tags$head(includeCSS("styles.css"))
+         ),
   
   # Page title
-  titlePanel("Global Investments (2005-2018)"),
-  
-  # Sidebar
-  sidebarLayout(
-    sidebarPanel(
-      width = 3,
-      selectInput(inputId = "country", 
-                  label = "Select a country:",
-                  choices = invest_countries,
-                  selected = "United States",
-                  selectize = TRUE),
-      awesomeCheckboxGroup(inputId = "leaders",
-                           label = "Choose leaders:",
-                           choices = c(leaders),
-                           selected = c("Xi Jinping", "Hu Jintao")),
-      helpText("Xi Jinping: President (2013-Present); Vice President (2008-2013)"),
-      helpText("Hu Jintao: President (2003-2013); Vice President (1998-2003)"),
-      helpText("Li Keqiang: Premier (2013-Present); Vice Premier (2008-2013)"),
-      helpText("Wen Jiabao: Premier (2003-2013)")),
+  # titlePanel("Global Investments (2005-2018)"),
     
-    # Main panel
-    mainPanel(plotlyOutput("investPlot"),
-              timevisOutput("engagements"),
-              tabPanel("",
-                       actionButton("year03", "2003"),
-                       actionButton("year04", "2004"),
-                       actionButton("year05", "2005"),
-                       actionButton("year06", "2006"),
-                       actionButton("year07", "2007"),
-                       actionButton("year08", "2008"),
-                       actionButton("year09", "2009"),
-                       actionButton("year10", "2010"),
-                       actionButton("year11", "2011"),
-                       actionButton("year12", "2012"),
-                       actionButton("year13", "2013"),
-                       actionButton("year14", "2014"),
-                       actionButton("year15", "2015"),
-                       actionButton("year16", "2016"),
-                       actionButton("year17", "2017"),
-                       actionButton("year18", "2018")),
-              hr(),
-              div(dataTableOutput("investtable", width = "100%"), style = "font-size:80%"),
-              div(dataTableOutput("leadertable", width = "100%"), style = "font-size:80%")
-    )
-  ))) # Three parentheses for tabPanel, fluidPage, and sidebarLayout
+  # Panel
+  absolutePanel(id = "invest_controls", class = "panel panel-default", fixed = FALSE, draggable = FALSE, top = 60, right = "auto",
+                left = 80, bottom = "auto", height = "auto", width = 280,
+                style = "border: none;",
+                selectInput(inputId = "country", 
+                            label = HTML("<b>Select a country:</b>"),
+                            choices = invest_countries,
+                            selected = "United States",
+                            selectize = TRUE),
+                helpText(textOutput("invest_amount")),
+                # helpText(textOutput("aid_number")),
+                # helpText(textOutput("aid_common")),
+                awesomeCheckboxGroup(inputId = "leaders",
+                                     label = HTML("<b>Choose leaders:</b>"),
+                                     choices = c(leaders),
+                                     selected = c("Xi Jinping", "Hu Jintao"),
+                                     inline = TRUE),
+                plotOutput("mini_graph2", height = "230px", width = "275px")
+  ),
+  
+  plotlyOutput("investPlot", width = "95%", height = "600px", inline = TRUE),
+  timevisOutput("engagements"),
+  hr(),
+  div(dataTableOutput("investtable", width = "100%"), style = "font-size:80%"),
+  div(dataTableOutput("leadertable", width = "100%"), style = "font-size:80%")
+  )
 )
 
 ##########
@@ -408,9 +395,59 @@ server <- function(input, output, session) {
     })
 
   
-  ################
-  # INVESTMENT TAB
-  ################
+################
+# INVESTMENT TAB
+################
+  
+  # Find the total investment amount
+  output$invest_amount <- renderText({
+    amount <- investdf %>%
+      filter(str_detect(country, input$country)) %>% 
+      filter(! is.na(quantity_in_millions))
+    
+    # # Filter by sector if applicable
+    # if (input$sector != "All") {
+    #   amount <- amount %>% 
+    #     filter(sector == input$sector)
+    # }
+    
+    amount <- sum(amount$quantity_in_millions)
+    paste0("Total investment: $", formatC(amount, format = "f", digits = 0, big.mark = ","), ",000,000")
+  })
+  
+  # Draw a baby plot on the sidebar
+  output$mini_graph2 <- renderPlot({
+    # Use selected country and leader(s)
+    mini_leader <- leaderdf %>% 
+      filter(country == input$country) %>% 
+      filter(leader %in% input$leaders) %>% 
+      
+      # Group years by year ranges
+      mutate(year = as.double(year)) %>% 
+      mutate(bucket = case_when(
+        year <= 2002 ~ "2000-02",
+        year >= 2003 & year <= 2007 ~ "2003-07",
+        year >= 2008 & year <= 2012 ~ "2008-12",
+        year >= 2013 ~ "2013-18"
+      ))
+    
+    # Make counts
+    mini <- count(mini_leader, bucket)
+    
+    # Put dummy numbers in if values are blank
+    if (is.na(mini)) {
+      mini <- data.frame(bucket = "2000-2018", n = 0)
+    }
+    
+    # Make the mini graph
+    ggplot(mini, aes(bucket, n, group = 1)) + 
+      geom_point(size = 0, col = "#0F52BA") +
+      geom_line(col = "#0F52BA") +
+      scale_y_continuous(breaks = round(seq(0, max(mini$n) + 3, by = 3), 2)) +
+      labs(x = "Engagements", y = "Count") +
+      theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank())
+  })
+  
   
   ### Plot the investments
   output$investPlot <- renderPlotly({
@@ -422,19 +459,25 @@ server <- function(input, output, session) {
     # Make the plotly object
     plot_ly(data1, x = ~date, y = ~quantity_in_millions, type = "scatter",
             hoverinfo = "text",
-            text = ~paste0("</br>", "<b>Amount: </b>", paste0("$", format(quantity_in_millions, big.mark = ",")), ",000,000",
+            text = ~paste0("</br>", "<b>Amount: </b>", paste0("$", formatC(quantity_in_millions, big.mark = ",")), ",000,000",
                            "</br>", "<b>Investor: </b>", chinese_entity,
                            "</br>", ifelse(is.na(transaction_party), "", paste0("<b>Transaction Party: </b>", transaction_party)),
                            ifelse(is.na(transaction_party), paste0("<b>Date: </b>", substr(date, 1, 7)),
                                   paste0("</br>", "<b>Date: </b>", substr(date, 1, 7)))),
             color = ~sector,
-            size = ~log(quantity_in_millions)**10,
+            size = ~log(quantity_in_millions)*50,
+            marker = list(sizeref = .25),
             mode = "markers") %>% 
       config(displayModeBar = FALSE) %>% 
+      # add_trace(~quantity_in_millions, mode = "lines") %>% 
       layout(
-        title = paste0("Chinese Investments in ", ifelse(input$country == "United States", "the United States", input$country)),
-        xaxis = list(title = "Date"),
-        yaxis = list(title = "Amount (mil. $)"))
+          title = paste0("Chinese Investments in ", ifelse(input$country == "United States", "the United States", input$country)),
+          xaxis = list(title = "Date"),
+          yaxis = list(title = "Amount (mil. $)"),
+          margin = list(t = 60, l = 450, pad = 0),
+          paper_bgcolor = 'rgba(0,0,0,0)',
+          plot_bgcolor = 'rgba(0,0,0,0)'
+          )
   })
   
   ### Make the timeline
@@ -478,40 +521,8 @@ server <- function(input, output, session) {
       # Set the default window differently depending on whether the number of engagements is high or low
       setWindow(ifelse(high, max(data1$date) - 100, min(data1$date) - 1500), max(data1$date) + 100)
   })
+
   
-  # Respond to each year button
-  observeEvent(input$year03, {
-    centerTime("engagements", "2003-06-15")})
-  observeEvent(input$year04, {
-    centerTime("engagements", "2004-06-15")})
-  observeEvent(input$year05, {
-    centerTime("engagements", "2005-06-15")})
-  observeEvent(input$year06, {
-    centerTime("engagements", "2006-06-15")})
-  observeEvent(input$year07, {
-    centerTime("engagements", "2007-06-15")})
-  observeEvent(input$year08, {
-    centerTime("engagements", "2008-06-15")})
-  observeEvent(input$year09, {
-    centerTime("engagements", "2009-06-15")})
-  observeEvent(input$year10, {
-    centerTime("engagements", "2010-06-15")})
-  observeEvent(input$year11, {
-    centerTime("engagements", "2011-06-15")})
-  observeEvent(input$year12, {
-    centerTime("engagements", "2012-06-15")})
-  observeEvent(input$year13, {
-    centerTime("engagements", "2013-06-15")})
-  observeEvent(input$year14, {
-    centerTime("engagements", "2014-06-15")})
-  observeEvent(input$year15, {
-    centerTime("engagements", "2015-06-15")})
-  observeEvent(input$year16, {
-    centerTime("engagements", "2016-06-15")})
-  observeEvent(input$year17, {
-    centerTime("engagements", "2017-06-15")})
-  observeEvent(input$year18, {
-    centerTime("engagements", "2018-06-15")})
   
   ### Make the investment list data table
   output$investtable = renderDataTable({
