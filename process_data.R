@@ -203,10 +203,24 @@ write_rds(investdf, "chinese-diplomacy-and-financing/investdf.rds")
 leaderdf <- read_rds("data/all_engagements_2003-2018.rds") %>% 
 
 # Change the date
-  mutate(date = mdy(date))
+  mutate(date = mdy(date)) %>% 
 
+# Filter out activity for leaders when they were not in office
+  filter(! {leader == "Xi Jinping" & date <= "2013-03-13"}) %>% # Assumed office on March 14
+  filter(! {leader == "Li Keqiang" & date <= "2013-03-14"}) %>% # Assumed office on March 15
+  filter(! {leader == "Hu Jintao" & date >= "2013-03-14" & date <= "2003-03-14"}) %>% # Left office on March 14
+  filter(! {leader == "Hu Jintao" & date <= "2003-03-14"}) %>% # Entered March 15
+  filter(! {leader == "Wen Jiabao" & date >= "2013-03-15"}) %>% # Left office on March 15
+  filter(! {leader == "Wen Jiabao" & date <= "2003-03-15"}) %>% # Entered March 16
+  filter(! {leader == "Wang Yi" & date <= "2013-03-15"}) %>% # Assumed office on March 16
+  filter(! {leader == "Yang Jiechi" & date >= "2013-03-16"}) %>% # Left March 16
+  filter(! {leader == "Yang Jiechi" & date <= "2007-04-26"}) %>% # Entered office on April 27
+  filter(! {leader == "Li Zhaoxing" & date >= "2007-04-26"}) %>% # Left office April 27
+  filter(! {leader == "Li Zhaoxing" & date <= "2003-03-16"}) # Entered March 17
+  
 # Export the data
 write_rds(leaderdf, "data/leaderdf.rds")
+write_rds(leaderdf, "chinese-diplomacy-and-financing/leaderdf.rds")
 
 ############################
 ### Make a full country list

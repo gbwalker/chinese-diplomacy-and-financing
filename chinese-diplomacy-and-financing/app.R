@@ -72,7 +72,7 @@ ui <- navbarPage("Elite Chinese Diplomacy and Financial Flows", position = "fixe
               ),
           
           # Include the map
-          leafletOutput("aidmap", width = "100%", height = "650px"),
+          leafletOutput("aidmap", width = "100%", height = "675px"),
   
   # Include the selection panel
   absolutePanel(id = "controls", class = "panel panel-default", fixed = FALSE, draggable = FALSE, top = 60, right = "auto",
@@ -90,9 +90,9 @@ ui <- navbarPage("Elite Chinese Diplomacy and Financial Flows", position = "fixe
                             choices = "All",
                             selected = "All",
                             multiple = FALSE),
-                tags$div(title = HTML("2013- : Xi President; Li Premier\n2008-13: Xi VP; Li Vice Premier\n2003-13: Hu President; Wen Premier\n1998-03: Hu VP; Wen Vice Premier"),                
+                tags$div(title = HTML("2013- : Xi President; Li K. Premier; Wang FM\n2003-13: Hu President; Wen Premier; Yang (07-13) and Li Z. (03-07) FM"),                
                          awesomeCheckboxGroup(inputId = "leaders2",
-                                              label = HTML("<b>Choose leaders:</b>"),
+                                              label = HTML("<b>Choose officials:</b>"),
                                               choices = c(leaders),
                                               selected = c("Xi Jinping", "Hu Jintao"),
                                               inline = TRUE)
@@ -130,9 +130,9 @@ tabPanel("Investment",
                 helpText(textOutput("invest_number")),
                 helpText(textOutput("invest_common")),
                 helpText(textOutput("invest_value")),
-                tags$div(title = HTML("2013- : Xi President; Li Premier\n2008-13: Xi VP; Li Vice Premier\n2003-13: Hu President; Wen Premier\n1998-03: Hu VP; Wen Vice Premier"),                
-                awesomeCheckboxGroup(inputId = "leaders",
-                                     label = HTML("<b>Choose leaders:</b>"),
+                tags$div(title = HTML("2013- : Xi President; Li K. Premier; Wang FM\n2003-13: Hu President; Wen Premier; Yang (07-13) and Li Z. (03-07) FM"),                
+                         awesomeCheckboxGroup(inputId = "leaders",
+                                     label = HTML("<b>Choose officials:</b>"),
                                      choices = c(leaders),
                                      selected = c("Xi Jinping", "Hu Jintao"),
                                      inline = TRUE)
@@ -141,7 +141,7 @@ tabPanel("Investment",
                 plotOutput("mini_graph2", height = "250px", width = "290px")
   ),
   
-  plotlyOutput("investPlot", width = "95%", height = "600px", inline = TRUE),
+  plotlyOutput("investPlot", width = "95%", height = "625px", inline = TRUE),
   hr(),
   timevisOutput("engagements"),
   hr(),
@@ -163,8 +163,9 @@ server <- function(input, output, session) {
   
   output$introduction <- renderText({
     HTML("<p><b>Introduction</b> </br>
-         This tool allows you to explore trends in Chinese financial flows and the international engagement of four Chinese leaders. </br>
-          It catalogs 3,683 engagements, 3,446 unique aid projects, and 2,908 investments in 188 countries between 2000 and 2018.
+         This tool allows you to explore trends in Chinese financial flows and the international engagement of elite Chinese officials. </br>
+          Specifically, it focuses on the in-office diplomatic activities of current president Xi Jinping, premier Li Keqiang, and foreign minister Wang Yi, and former president Hu Jintao, premier Wen Jiabao, and foreign ministers Yang Jiechi and Li Zhaoxing.</br>
+          It catalogs 5,649 individual engagements, 3,446 unique aid projects, and 2,908 investments in 188 countries between 2000 and 2018.
           </p>
          <p><b>Navigation</b> </br>
           <i>Map:</i> Drag with your mouse and zoom with the scroll wheel. Click clusters to expand groups. Click on individual projects for details.</br>
@@ -182,7 +183,7 @@ server <- function(input, output, session) {
           </p>
          <p><b>Note</b> </br>
          Created by <a href=\"mailto:gabriel_walker@student.hks.harvard.edu\">Gabe Walker</a> for <i>Government 1005: Data</i> (Harvard University, December 2018). <br>
-         See <a href=\"https://github.com/gbwalker/chinese-diplomacy-and-financing\">Github</a> for cleaned data, engagement scraper, and app source code.</p>")
+         See <a href=\"https://github.com/gbwalker/chinese-diplomacy-and-financing\">Github</a> for methodology, cleaned data, engagement scraper, and app source code.</p>")
   })
   
 #########
@@ -393,13 +394,6 @@ server <- function(input, output, session) {
     updateSelectInput(session, "sector", choices = c("All", unique(data1$sector)), selected = "All")
   })
   
-  # Validate the check boxes so at least one is checked
-  # observe({
-  #   if(is.null(input$leaders2))
-  #     updateAwesomeCheckboxGroup(session, "leaders2", selected = "Xi Jinping")
-  # })
-
-  
   # Get the name of the current country for the table titles
   output$aid_title <- renderText(paste0("Aid to ", input$country2))
   output$engagement_title <- renderText(paste0("Engagements With ", input$country2))
@@ -442,7 +436,7 @@ server <- function(input, output, session) {
       n <= 25 ~ FALSE)
     
     ### Timeline
-    timevis(showZoom = FALSE, fit = TRUE, height = "400pt",
+    timevis(showZoom = FALSE, fit = TRUE, height = "500pt",
             
             # Set options in JS for zoom limits; zoomMax is in miliseconds
             options = list(max = "2020-01-01",
@@ -495,7 +489,7 @@ server <- function(input, output, session) {
     
     # Data table
     datatable(data1, options=list(pageLength = 10),
-              colnames = c("Date", "Leader", "Description"))
+              colnames = c("Date", "Official", "Description"))
     })
 
   
@@ -704,7 +698,7 @@ server <- function(input, output, session) {
       n <= 25 ~ FALSE)
     
     ### Timeline
-    timevis(showZoom = FALSE, fit = TRUE, height = "400pt",
+    timevis(showZoom = FALSE, fit = TRUE, height = "500pt",
             
             # Set options in JS for zoom limits; zoomMax is in miliseconds
             options = list(max = "2020-01-01",
@@ -780,7 +774,7 @@ server <- function(input, output, session) {
     
     # Data table
     datatable(data1, options=list(pageLength = 10),
-              colnames = c("Date", "Leader", "Description")) %>% 
+              colnames = c("Date", "Official", "Description")) %>% 
       formatStyle(columns = TRUE, target= "row")  })
 
 }

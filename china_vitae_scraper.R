@@ -13,17 +13,15 @@ library(fs)
 countries <- read_csv("data/country-list.csv")
 
 # Make a list of the urls to read for Xi Jinping, Hu Jintao, Li Keqiang, and Wen Jiabao.
-urls <- c("http://www.chinavitae.com/vip/index.php?mode=events&type=cv&id=303&filter_year=2018",
+urls <- c( # Xi Jinping
+          "http://www.chinavitae.com/vip/index.php?mode=events&type=cv&id=303&filter_year=2018",
           "http://www.chinavitae.com/vip/index.php?mode=events&type=cv&id=303&filter_year=2017",
           "http://www.chinavitae.com/vip/index.php?mode=events&type=cv&id=303&filter_year=2016",
           "http://www.chinavitae.com/vip/index.php?mode=events&type=cv&id=303&filter_year=2015",
           "http://www.chinavitae.com/vip/index.php?mode=events&type=cv&id=303&filter_year=2014",
           "http://www.chinavitae.com/vip/index.php?mode=events&type=cv&id=303&filter_year=2013",
-          "http://www.chinavitae.com/vip/index.php?mode=events&type=cv&id=303&filter_year=2012",
-          "http://www.chinavitae.com/vip/index.php?mode=events&type=cv&id=303&filter_year=2011",
-          "http://www.chinavitae.com/vip/index.php?mode=events&type=cv&id=303&filter_year=2010",
-          "http://www.chinavitae.com/vip/index.php?mode=events&type=cv&id=303&filter_year=2009",
-          "http://www.chinavitae.com/vip/index.php?mode=events&type=cv&id=303&filter_year=2008",
+          # Hu Jintao
+          "http://www.chinavitae.com/vip/index.php?mode=events&type=cv&id=19&filter_year=2013",
           "http://www.chinavitae.com/vip/index.php?mode=events&type=cv&id=19&filter_year=2012",
           "http://www.chinavitae.com/vip/index.php?mode=events&type=cv&id=19&filter_year=2011",
           "http://www.chinavitae.com/vip/index.php?mode=events&type=cv&id=19&filter_year=2010",
@@ -34,17 +32,15 @@ urls <- c("http://www.chinavitae.com/vip/index.php?mode=events&type=cv&id=303&fi
           "http://www.chinavitae.com/vip/index.php?mode=events&type=cv&id=19&filter_year=2005",
           "http://www.chinavitae.com/vip/index.php?mode=events&type=cv&id=19&filter_year=2004",
           "http://www.chinavitae.com/vip/index.php?mode=events&type=cv&id=19&filter_year=2003",
+          # Li Keqiang
           "http://www.chinavitae.com/vip/index.php?mode=events&type=cv&id=263&filter_year=2018",
           "http://www.chinavitae.com/vip/index.php?mode=events&type=cv&id=263&filter_year=2017",
           "http://www.chinavitae.com/vip/index.php?mode=events&type=cv&id=263&filter_year=2016",
           "http://www.chinavitae.com/vip/index.php?mode=events&type=cv&id=263&filter_year=2015",
           "http://www.chinavitae.com/vip/index.php?mode=events&type=cv&id=263&filter_year=2014",
           "http://www.chinavitae.com/vip/index.php?mode=events&type=cv&id=263&filter_year=2013",
-          "http://www.chinavitae.com/vip/index.php?mode=events&type=cv&id=263&filter_year=2012",
-          "http://www.chinavitae.com/vip/index.php?mode=events&type=cv&id=263&filter_year=2011",
-          "http://www.chinavitae.com/vip/index.php?mode=events&type=cv&id=263&filter_year=2010",
-          "http://www.chinavitae.com/vip/index.php?mode=events&type=cv&id=263&filter_year=2009",
-          "http://www.chinavitae.com/vip/index.php?mode=events&type=cv&id=263&filter_year=2008",
+          # Wen Jiabao
+          "http://www.chinavitae.com/vip/index.php?mode=events&type=cv&id=21&filter_year=2013",
           "http://www.chinavitae.com/vip/index.php?mode=events&type=cv&id=21&filter_year=2012",
           "http://www.chinavitae.com/vip/index.php?mode=events&type=cv&id=21&filter_year=2011",
           "http://www.chinavitae.com/vip/index.php?mode=events&type=cv&id=21&filter_year=2010",
@@ -54,7 +50,28 @@ urls <- c("http://www.chinavitae.com/vip/index.php?mode=events&type=cv&id=303&fi
           "http://www.chinavitae.com/vip/index.php?mode=events&type=cv&id=21&filter_year=2006",
           "http://www.chinavitae.com/vip/index.php?mode=events&type=cv&id=21&filter_year=2005",
           "http://www.chinavitae.com/vip/index.php?mode=events&type=cv&id=21&filter_year=2004",
-          "http://www.chinavitae.com/vip/index.php?mode=events&type=cv&id=21&filter_year=2003"
+          "http://www.chinavitae.com/vip/index.php?mode=events&type=cv&id=21&filter_year=2003",
+          # Wang Yi
+          "http://www.chinavitae.com/vip/index.php?mode=events&type=cv&id=416&filter_year=2018",
+          "http://www.chinavitae.com/vip/index.php?mode=events&type=cv&id=416&filter_year=2017",
+          "http://www.chinavitae.com/vip/index.php?mode=events&type=cv&id=416&filter_year=2016",
+          "http://www.chinavitae.com/vip/index.php?mode=events&type=cv&id=416&filter_year=2015",
+          "http://www.chinavitae.com/vip/index.php?mode=events&type=cv&id=416&filter_year=2014",
+          "http://www.chinavitae.com/vip/index.php?mode=events&type=cv&id=416&filter_year=2013",
+          # Yang Jiechi
+          "http://www.chinavitae.com/vip/index.php?mode=events&type=cv&id=1885&filter_year=2013",
+          "http://www.chinavitae.com/vip/index.php?mode=events&type=cv&id=1885&filter_year=2012",
+          "http://www.chinavitae.com/vip/index.php?mode=events&type=cv&id=1885&filter_year=2011",
+          "http://www.chinavitae.com/vip/index.php?mode=events&type=cv&id=1885&filter_year=2010",
+          "http://www.chinavitae.com/vip/index.php?mode=events&type=cv&id=1885&filter_year=2009",
+          "http://www.chinavitae.com/vip/index.php?mode=events&type=cv&id=1885&filter_year=2008",
+          "http://www.chinavitae.com/vip/index.php?mode=events&type=cv&id=1885&filter_year=2007",
+          # Li Zhaoxing
+          "http://www.chinavitae.com/vip/index.php?mode=events&type=cv&id=411&filter_year=2007",
+          "http://www.chinavitae.com/vip/index.php?mode=events&type=cv&id=411&filter_year=2006",
+          "http://www.chinavitae.com/vip/index.php?mode=events&type=cv&id=411&filter_year=2005",
+          "http://www.chinavitae.com/vip/index.php?mode=events&type=cv&id=411&filter_year=2004",
+          "http://www.chinavitae.com/vip/index.php?mode=events&type=cv&id=411&filter_year=2003"
           )
 
 # Make an empty df for the scraped data
@@ -66,7 +83,7 @@ for (url in urls) {
   page <- read_html(url)
   
   # Get the year
-  year <- str_extract(url, "\\d\\d\\d\\d")
+  year <- str_extract(str_extract(url, "year=\\d\\d\\d\\d"), "\\d\\d\\d\\d")
   
   # Get the leader's name
   name <- html_text(html_nodes(page, ".red2"))
@@ -161,9 +178,10 @@ for (url in urls) {
     
     # Fix a few other countries
     mutate(country = case_when(
-      country == "British" | country == "Britain" | country == "United Kingdom" ~ "England",
+      country == "British" | country == "Britain" | country == "United Kingdom" | country == "U.K." ~ "England",
       country == "French" ~ "France",
       country == "Papua" ~ "Papua New Guinea",
+      country == "U.S." ~ "United States",
       country == "USA" ~ "United States",
       country == "Bosnia" | country == "Herzegovina" ~ "Bosnia and Herzegovina",
       country == "Czech" ~ "Czech Republic",
