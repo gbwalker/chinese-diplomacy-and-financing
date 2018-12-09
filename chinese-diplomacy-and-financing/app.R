@@ -193,6 +193,7 @@ ui <- navbarPage("Elite Chinese Diplomacy and Financial Flows",
     hr(),
     h3(textOutput("invest_title")),
     div(dataTableOutput("investtable", width = "100%"), style = "font-size:80%"),
+    hr(),
     h3(textOutput("engagement_title2")),
     div(dataTableOutput("leadertable", width = "100%"), style = "font-size:80%")
   )
@@ -825,7 +826,7 @@ server <- function(input, output, session) {
       geom_line(aes(y = n.investments), col = "#ED2939") +
       scale_y_continuous(
         sec.axis = sec_axis(~ . * 1,
-          name = "Investments per Year (#)",
+          name = "Investments per Year",
           breaks = waiver()
         )
       ) +
