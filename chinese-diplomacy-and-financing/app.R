@@ -13,6 +13,7 @@ library(stringr)
 library(shinyWidgets)
 library(leaflet)
 library(lubridate)
+library(shinyBS)
 
 ##################
 # Read in the data
@@ -56,15 +57,22 @@ leaders <- unique(leaderdf$leader)
 ##################
 ui <- navbarPage("Elite Chinese Diplomacy and Financial Flows", position = "fixed-top",
 
-### First tab for aid
-  tabPanel("Global Aid", 
-    div(class = "outer",
-    # Include custom CSS
-    tags$head(includeCSS("styles.css"))
-        ),
-  
-  # Include the map
-  leafletOutput("aidmap", width = "100%", height = "650px"),
+                 
+ ### First tab for aid
+ tabPanel("Aid", 
+          
+          # Startup message
+          bsModal(id = "startupModal", title = "Elite Chinese Diplomacy and Financial Flows", trigger = '', size = 'large',
+                  img(src="globe.png", style="display: block; margin-left: auto; margin-right: auto;", height = "120", width = "120"),
+                  htmlOutput("introduction")),
+
+          div(class = "outer",
+              # Include custom CSS
+              tags$head(includeCSS("styles.css"))
+              ),
+          
+          # Include the map
+          leafletOutput("aidmap", width = "100%", height = "650px"),
   
   # Include the selection panel
   absolutePanel(id = "controls", class = "panel panel-default", fixed = FALSE, draggable = FALSE, top = 60, right = "auto",
@@ -90,7 +98,7 @@ ui <- navbarPage("Elite Chinese Diplomacy and Financial Flows", position = "fixe
                                               inline = TRUE)
                         ),
                 helpText(textOutput("engagements_total2")),
-                plotOutput("mini_graph", height = "230px", width = "275px")
+                plotOutput("mini_graph", height = "250px", width = "290px")
               ),
   hr(),
   timevisOutput("engagements2", width = "100%"),
@@ -103,14 +111,11 @@ ui <- navbarPage("Elite Chinese Diplomacy and Financial Flows", position = "fixe
   ),
 
 ### Second tab
-tabPanel("Global Investments", 
+tabPanel("Investment", 
          div(class = "outer",
              # Include custom CSS
              tags$head(includeCSS("styles.css"))
          ),
-  
-  # Page title
-  # titlePanel("Global Investments (2005-2018)"),
     
   # Panel
   absolutePanel(id = "invest_controls", class = "panel panel-default", fixed = FALSE, draggable = FALSE, top = 60, right = "auto",
@@ -133,10 +138,11 @@ tabPanel("Global Investments",
                                      inline = TRUE)
                         ),
                 helpText(textOutput("engagements_total")),
-                plotOutput("mini_graph2", height = "230px", width = "275px")
+                plotOutput("mini_graph2", height = "250px", width = "290px")
   ),
   
   plotlyOutput("investPlot", width = "95%", height = "600px", inline = TRUE),
+  hr(),
   timevisOutput("engagements"),
   hr(),
   h3(textOutput("invest_title")),
@@ -151,7 +157,34 @@ tabPanel("Global Investments",
 ##########
 
 server <- function(input, output, session) {
-
+  
+  ### Modal popup intro message
+  toggleModal(session, "startupModal", toggle = "open")
+  
+  output$introduction <- renderText({
+    HTML("<p><b>Introduction</b> </br>
+         This tool allows you to explore trends in Chinese financial flows and the international engagement of four Chinese leaders. </br>
+          It catalogs 3,683 engagements, 3,446 unique aid projects, and 2,908 investments in 188 countries between 2000 and 2018.
+          </p>
+         <p><b>Navigation</b> </br>
+          <i>Map:</i> Drag with your mouse and zoom with the scroll wheel. Click clusters to expand groups. Click on individual projects for details.</br>
+          <i>Timeline:</i> Drag with your mouse and zoom with the scrool wheel. Hover over events for details.</br>
+          <i>Investment Chart:</i> Select sectors by double-clicking a name. Draw a rectangle to focus on a portion of the chart.</br>
+          <i>Tables:</i> Type to search.</br>
+          </p>
+         <p><b>Sources</b> </br>
+          All data for this project comes from free, publicly available sources. Many thanks to those who collected and provided it.<br>
+          <ul>
+          <li>AidData Research and Evaluation Unit. 2018. <a href=\"https://www.aiddata.org/data/geocoded-chinese-global-official-finance-dataset\">AidData's Geocoded Global Chinese Official Finance, Version 1.1.1.</a> Williamsburg, VA: AidData at William & Mary.</li>
+          <li><a href=\"http://www.aei.org/china-global-investment-tracker/\">China Global Investment Tracker.</a> 2018. American Enterprise Institute.</li>
+          <li><i><a href=\"http://www.chinavitae.com/index.php\">China Vitae.</a></i> 2018. Carnegie Endowment for International Peace.</li>
+          </ul>
+          </p>
+         <p><b>Note</b> </br>
+         Created by <a href=\"mailto:gabriel_walker@student.hks.harvard.edu\">Gabe Walker</a> for <i>Government 1005: Data</i> (Harvard University, December 2018). <br>
+         See <a href=\"https://github.com/gbwalker/chinese-diplomacy-and-financing\">Github</a> for cleaned data, engagement scraper, and app source code.</p>")
+  })
+  
 #########
 # AID TAB
 #########
@@ -171,7 +204,7 @@ server <- function(input, output, session) {
     }
     
     amount <- sum(amount$usd_current)
-    paste0("Recorded aid amount: $", formatC(amount, format = "f", digits = 0, big.mark = ","))
+    paste0("Recorded aid: $", formatC(amount, format = "f", digits = 0, big.mark = ","))
   })
   
   # Find the number of projects for the given country and sector
@@ -286,7 +319,7 @@ server <- function(input, output, session) {
       geom_line(aes(y = n.aid), col = "#ED2939") +
       scale_y_continuous(
         sec.axis = sec_axis(~.*1,
-                            name = "Aid Projects per Year (#)",
+                            name = "Aid Projects per Year",
                             breaks = waiver())) +
       labs(x = "Date", y = "Engagements per Year") +
       theme(axis.title.y = element_text(color = "#0F52BA"),
@@ -409,14 +442,11 @@ server <- function(input, output, session) {
       n <= 25 ~ FALSE)
     
     ### Timeline
-    timevis(showZoom = FALSE, fit = TRUE, height = "350pt",
+    timevis(showZoom = FALSE, fit = TRUE, height = "400pt",
             
             # Set options in JS for zoom limits; zoomMax is in miliseconds
             options = list(max = "2020-01-01",
-                           min = "2000-01-01",
-                           zoomMax = case_when(
-                             high ~ 31540000000*2,
-                             high ~ 567720000000)
+                           min = "2000-01-01"
             ),
             groups = data_frame(id = names, content = names)) %>% 
       
@@ -641,17 +671,11 @@ server <- function(input, output, session) {
           title = chart_title,
           xaxis = list(title = "Date"),
           yaxis = list(title = "Amount (bil. $)"),
-          margin = list(t = 150, l = 450, pad = 0),
+          margin = list(t = 150, l = 450, b = 40, pad = 0),
           paper_bgcolor = 'rgba(0,0,0,0)',
           plot_bgcolor = 'rgba(0,0,0,0)'
           )
   })
-  
-  # Validate the check boxes so at least one is checked
-  # observe({
-  #   if(is.null(input$leaders))
-  #     updateAwesomeCheckboxGroup(session, "leaders", selected = "Xi Jinping")
-  # })
   
   ### Make the timeline
   output$engagements <- renderTimevis({
@@ -680,14 +704,11 @@ server <- function(input, output, session) {
       n <= 25 ~ FALSE)
     
     ### Timeline
-    timevis(showZoom = FALSE, fit = TRUE, height = "350pt",
+    timevis(showZoom = FALSE, fit = TRUE, height = "400pt",
             
             # Set options in JS for zoom limits; zoomMax is in miliseconds
             options = list(max = "2020-01-01",
-                           min = "2000-01-01",
-                           zoomMax = case_when(
-                             high ~ 31540000000*2,
-                             high ~ 567720000000)
+                           min = "2000-01-01"
             ),
             groups = data_frame(id = names, content = names)) %>% 
       
