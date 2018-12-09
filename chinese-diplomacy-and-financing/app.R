@@ -137,7 +137,7 @@ ui <- navbarPage("Elite Chinese Diplomacy and Financial Flows",
 
   ### Second tab for investment.
   tabPanel(
-    "Investment",
+    "Investments",
     
     # This tab also uses the same custom CSS from the SuperZip example
     # to make sure the two pages are aesthetically similar.
@@ -216,7 +216,7 @@ server <- function(input, output, session) {
     HTML("<p><b>Introduction</b> </br>
          This tool allows you to explore trends in Chinese financial flows and the international engagement of elite Chinese officials. </br>
           Specifically, it focuses on the in-office diplomatic activities of current president Xi Jinping, premier Li Keqiang, and foreign minister Wang Yi, and former president Hu Jintao, premier Wen Jiabao, and foreign ministers Yang Jiechi and Li Zhaoxing.</br>
-          It catalogs 5,649 individual engagements, 3,446 unique aid projects, and 2,908 investments in 188 countries between 2000 and 2018.
+          It catalogs 5,649 individual engagements, 3,446 unique aid projects, and 2,908 investments in 186 countries between 2000 and 2018.
           </p>
          <p><b>Navigation</b> </br>
           <i>Map:</i> Drag with your mouse and zoom with the scroll wheel. Click clusters to expand groups. Click on individual projects for details.</br>

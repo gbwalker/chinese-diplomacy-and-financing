@@ -5,8 +5,8 @@ account: gbwalker
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 604587
-bundleId: 1741757
+bundleId: 1751355
 url: https://gbwalker.shinyapps.io/chinese-diplomacy-and-financing/
-when: 1543995082.4445
+when: 1544388981.44664
 asMultiple: FALSE
 asStatic: FALSE
