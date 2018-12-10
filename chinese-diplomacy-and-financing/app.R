@@ -221,7 +221,7 @@ server <- function(input, output, session) {
           </p>
          <p><b>Navigation</b> </br>
           <i>Map:</i> Drag with your mouse and zoom with the scroll wheel. Click clusters to expand groups. Click on individual projects for details.</br>
-          <i>Timeline:</i> Drag with your mouse and zoom with the scrool wheel. Hover over events for details.</br>
+          <i>Timeline:</i> Drag with your mouse and zoom with the scroll wheel. Hover over events for details.</br>
           <i>Investment Chart:</i> Select sectors by double-clicking a name. Draw a rectangle to focus on a portion of the chart.</br>
           <i>Tables:</i> Type to search.</br>
           </p>
