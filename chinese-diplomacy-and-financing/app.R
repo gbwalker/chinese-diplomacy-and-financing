@@ -54,7 +54,7 @@ leaders <- unique(leaderdf$leader)
 ### USER INTERFACE
 ##################
 ui <- navbarPage("Elite Chinese Diplomacy and Financial Flows",
-  position = "fixed-top",
+  position = "static-top",
 
   ### First tab for aid.
   tabPanel(
@@ -590,7 +590,7 @@ server <- function(input, output, session) {
 
     # Generate the timeline.
     timevis(
-      showZoom = FALSE, fit = TRUE, height = "450pt",
+      showZoom = FALSE, fit = TRUE, height = "400pt",
 
       # Set options for the minimum and maximum display.
       options = list(
@@ -647,6 +647,7 @@ server <- function(input, output, session) {
       options = list(pageLength = 10),
       colnames = c("Year", "Country", "Place", "Sector", "Description", "Funder", "Flow", "Flow Class", "Intention", "Amount ($)")
     ) %>%
+      formatStyle(columns = TRUE, target = "row", lineHeight = "90%") %>% 
       formatCurrency(columns = "usd_current", currency = "", interval = 3, mark = ",", digits = 0)
   })
 
@@ -666,7 +667,8 @@ server <- function(input, output, session) {
     datatable(data1,
       options = list(pageLength = 10),
       colnames = c("Date", "Official", "Description")
-    )
+    ) %>% 
+      formatStyle(columns = TRUE, target = "row", lineHeight = "90%")
   })
 
 
@@ -895,7 +897,7 @@ server <- function(input, output, session) {
         title = chart_title,
         xaxis = list(title = "Date"),
         yaxis = list(title = "Amount (bil. $)"),
-        margin = list(t = 150, l = 450, pad = 0),
+        margin = list(t = 60, l = 450, pad = 0),
         paper_bgcolor = "rgba(0,0,0,0)",
         plot_bgcolor = "rgba(0,0,0,0)"
       )
@@ -937,7 +939,7 @@ server <- function(input, output, session) {
 
     # Generate the timeline.
     timevis(
-      showZoom = FALSE, fit = TRUE, height = "500pt",
+      showZoom = FALSE, fit = TRUE, height = "400pt",
 
       # Set options for the minimum and maximum display.
       options = list(
@@ -1047,7 +1049,7 @@ server <- function(input, output, session) {
       options = list(pageLength = 10),
       colnames = c("Date", "Official", "Description")
     ) %>%
-      formatStyle(columns = TRUE, target = "row")
+      formatStyle(columns = TRUE, target = "row", lineHeight = "90%")
   })
 }
 
